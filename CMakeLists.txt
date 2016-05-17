@@ -7,6 +7,7 @@ project(mecanum_bot)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  message_generation
 )
 
 FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi /usr/lib)
@@ -45,11 +46,10 @@ FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi /usr/lib)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+ add_message_files(
+   FILES
+	motors.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -66,12 +66,12 @@ FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi /usr/lib)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-#  generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+  generate_messages(
+   DEPENDENCIES
+   std_msgs
+ )
 
-#generate_messages(DEPENDENCIES std_msgs)
+ #generate_messages(DEPENDENCIES std_msgs)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -105,7 +105,7 @@ FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi /usr/lib)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mecanum_bot
-#  CATKIN_DEPENDS roscpp std_msgs
+	CATKIN_DEPENDS message_runtime #roscpp std_msgs 
 #  DEPENDS system_lib
 )
 
@@ -145,6 +145,16 @@ include_directories(
 add_executable(test_node src/test.cpp)
 target_link_libraries(test_node ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 add_dependencies(test_node mecanum_bot_generate_messages_cpp wiringPi)
+
+add_executable(controller_node src/motor_controller.cpp)
+target_link_libraries(controller_node ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+add_dependencies(controller_node mecanum_bot_generate_messages_cpp wiringPi)
+
+add_executable(mecanum_control_node src/mecanum_control.cpp util/PiPS2.cpp)
+target_link_libraries(mecanum_control_node ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+add_dependencies(mecanum_control_node mecanum_bot_generate_messages_cpp wiringPi)
+
+#rosbuild_add_library(PiPS2 util/PiPS2.cpp)
 
 #############
 ## Install ##
