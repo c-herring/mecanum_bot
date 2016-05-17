@@ -154,6 +154,10 @@ add_executable(mecanum_control_node src/mecanum_control.cpp util/PiPS2.cpp)
 target_link_libraries(mecanum_control_node ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 add_dependencies(mecanum_control_node mecanum_bot_generate_messages_cpp wiringPi)
 
+add_executable(mecanum_bot_teleop_ps2 src/teleop_ps2.cpp util/PiPS2.cpp)
+target_link_libraries(mecanum_bot_teleop_ps2 ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+add_dependencies(mecanum_bot_teleop_ps2 mecanum_bot_generate_messages_cpp wiringPi)
+
 #rosbuild_add_library(PiPS2 util/PiPS2.cpp)
 
 #############
