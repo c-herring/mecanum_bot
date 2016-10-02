@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/Float64MultiArray.h"
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
 #include <stdlib.h>
@@ -14,6 +15,8 @@ class MotorController
 		MotorController();
 		void PublishEncoders();
 		void PublishVelocities();
+		void printDebug();
+		void PublishTestArray();
 	
 	private:
 		// I2C transfer buffers
@@ -33,10 +36,14 @@ class MotorController
 		mecanum_bot::motors vel_msg;
 		geometry_msgs::Twist twist_msg;
 		
+		std_msgs::Float64MultiArray testArray_msg;
+		
 		// Pubs
 		ros::Publisher testPub;
 		ros::Publisher encoderPub;
 		ros::Publisher velPub;
+		
+		ros::Publisher testArrayPub;
 		
 		// Subs
 		ros::Subscriber L_cmd; // Send a null terminated ASCII command string to left motor
@@ -49,6 +56,7 @@ class MotorController
 		void R_cmd_callback(const std_msgs::String::ConstPtr& msg);
 		void set_vel_callback(const mecanum_bot::motors::ConstPtr& msg);
 		void set_twist_callback(const geometry_msgs::Twist msg);
+
 				
 		// Robot Geometry
 		float wheelGeometryX[4];
@@ -87,6 +95,8 @@ MotorController::MotorController()
 	encoderPub = nh.advertise<mecanum_bot::motors>("encoder_pos", 100);	
 	velPub = nh.advertise<mecanum_bot::motors>("encoder_vel", 100);
 	
+	testArrayPub = nh.advertise<std_msgs::Float64MultiArray>("test_array", 100);
+	
 	// -------- Set up wiringPi --------
 	wiringPiSetupSys();
 	if ( (fdL = wiringPiI2CSetup(0x04)) == -1)
@@ -114,11 +124,23 @@ void MotorController::PublishEncoders()
 	delayMicroseconds(TWIDelay);
 	
 	// Pull data out from the strings
-	sscanf(RXbuf1, "PA%ldB%ld", &(enc_msg.LeftRear), &(enc_msg.LeftFront));	
-	sscanf(RXbuf2, "PA%ldB%ld", &(enc_msg.RightFront), &(enc_msg.RightRear));
+	sscanf(RXbuf1, "PA%ldB%ld", &(enc_msg.RightFront), &(enc_msg.RightRear));	
+	sscanf(RXbuf2, "PA%ldB%ld", &(enc_msg.LeftRear), &(enc_msg.LeftFront));
 
 	// Publish
 	encoderPub.publish(enc_msg);
+}
+
+void MotorController::PublishTestArray()
+{
+	testArray_msg.data.clear();
+	for (int i = 0; i < 4; i++)
+	{
+		testArray_msg.data.push_back(rand());
+	}
+	
+	testArrayPub.publish(testArray_msg);
+	
 }
 
 void MotorController::PublishVelocities()
@@ -136,8 +158,9 @@ void MotorController::PublishVelocities()
 	delayMicroseconds(TWIDelay);
 	
 	// Pull data out from the strings
-	sscanf(RXbuf1, "VA%ldB%ld", &(vel_msg.LeftRear), &(vel_msg.LeftFront));	
-	sscanf(RXbuf2, "VA%ldB%ld", &(vel_msg.RightFront), &(vel_msg.RightRear));
+	
+	sscanf(RXbuf1, "VA%ldB%ld", &(vel_msg.RightFront), &(vel_msg.RightRear));	
+	sscanf(RXbuf2, "VA%ldB%ld", &(vel_msg.LeftRear), &(vel_msg.LeftFront));
 	
 	// Publish
 	velPub.publish(vel_msg);
@@ -170,6 +193,9 @@ void MotorController::set_vel_callback(const mecanum_bot::motors::ConstPtr& msg)
 	delayMicroseconds(TWIDelay);
 }
 
+/*
+ * Set velocity in X, Y and roation about Z in mm/s
+ */
 void MotorController::set_twist_callback(const geometry_msgs::Twist msg)
 {
 	int32_t RightFront;
@@ -196,6 +222,23 @@ void MotorController::set_twist_callback(const geometry_msgs::Twist msg)
 	delayMicroseconds(TWIDelay);
 }
 
+void MotorController::printDebug()
+{
+	// -------- DEBGGING --------
+		// Set controllers to output debig string
+		//write(fdL, "?V", 2);
+		//delayMicroseconds(TWIDelay);
+		write(fdR, "?t", 2);	
+		delayMicroseconds(TWIDelay);
+		// Read from each controller
+		//read(fdL, RXbuf1, 50);
+		//delayMicroseconds(TWIDelay);
+		read(fdR, RXbuf2, 50);
+		delayMicroseconds(TWIDelay);
+		// Print the strings
+		printf("%s\n", RXbuf2);
+}
+
 
 int main(int argc, char** argv)
 {
@@ -211,11 +254,13 @@ int main(int argc, char** argv)
 	while (ros::ok())
 	{
 		
+		controller.printDebug();
+		
 		// Get raw encoder positions and publish them
 		controller.PublishEncoders();
 		// Get raw encoder velocities and publish them
 		controller.PublishVelocities();
-		
+		controller.PublishTestArray();
 		
 		// Spin then sleep
 		ros::spinOnce();

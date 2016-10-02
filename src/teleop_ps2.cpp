@@ -65,6 +65,7 @@ int main(int argc, char** argv)
 	if (!pips2.initializeController(10, 9, 11, 8))
 	{
 		fprintf(stderr, "Failed to configure gamepad\nController is not responding.\nExiting ...\n");
+		return -1;
 	}
 	// Now do a re-init to set the mode to all pressures returned
 	int returnVal = pips2.reInitializeController(ALLPRESSUREMODE);
